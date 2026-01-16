@@ -1,7 +1,10 @@
 package com.example.taskflow.domain;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -10,6 +13,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -34,11 +38,15 @@ public class Task {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    // Values: URGENT, HIGH, NORMAL, LOW, NONE
     @Column(length = 20)
     private String priority; 
 
     @Column(name = "due_date")
     private LocalDateTime dueDate;
+
+    @Column(name = "tags")
+    private String tags; 
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_to", nullable = false)
@@ -57,4 +65,11 @@ public class Task {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "cover_image_url")
+    private String coverImageUrl;
+
+    // In Task.java
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<ChecklistItem> checklists = new ArrayList<>();
 }

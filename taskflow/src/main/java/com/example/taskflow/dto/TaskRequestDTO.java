@@ -10,6 +10,7 @@ public class TaskRequestDTO {
     private String creatorUsername;
     private String priority; 
     private LocalDateTime dueDate;
+    private String tags;
 
     public TaskRequestDTO() {}
 
@@ -31,4 +32,7 @@ public class TaskRequestDTO {
 
     public LocalDateTime getDueDate() { return dueDate; }
     public void setDueDate(LocalDateTime dueDate) { this.dueDate = dueDate; }
+
+    public String getTags() { return tags; }
+    public void setTags(String tags) { this.tags = tags; }
 }

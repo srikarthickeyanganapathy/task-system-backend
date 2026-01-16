@@ -5,13 +5,17 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.example.taskflow.domain.ChecklistItem;
 import com.example.taskflow.domain.Task;
 import com.example.taskflow.domain.TaskComment;
 import com.example.taskflow.domain.User;
+import com.example.taskflow.repository.ChecklistItemRepository;
 import com.example.taskflow.repository.TaskCommentRepository;
 import com.example.taskflow.repository.TaskRepository;
 import com.example.taskflow.security.RoleStrategy;
 import com.example.taskflow.security.RoleStrategyFactory;
+
+import jakarta.transaction.Transactional;
 
 @Service
 public class TaskWorkflowService {
@@ -20,15 +24,18 @@ public class TaskWorkflowService {
     private final TaskAuditService taskAuditService;
     private final RoleStrategyFactory roleStrategyFactory;
     private final TaskCommentRepository taskCommentRepository;
+    private final ChecklistItemRepository checklistItemRepository;
 
     public TaskWorkflowService(TaskRepository taskRepository,
                                TaskAuditService taskAuditService,
                                RoleStrategyFactory roleStrategyFactory,
-                               TaskCommentRepository taskCommentRepository) {
+                               TaskCommentRepository taskCommentRepository,
+                               ChecklistItemRepository checklistItemRepository) {
         this.taskRepository = taskRepository;
         this.taskAuditService = taskAuditService;
         this.roleStrategyFactory = roleStrategyFactory;
         this.taskCommentRepository = taskCommentRepository;
+        this.checklistItemRepository = checklistItemRepository;
     }
 
     public List<Task> getTasksForUser(User user) {
@@ -114,5 +121,27 @@ public class TaskWorkflowService {
 
     public List<TaskComment> getComments(Long taskId) {
         return taskCommentRepository.findByTaskId(taskId);
+    }
+
+    @Transactional
+    public ChecklistItem addChecklistItem(Long taskId, String text) {
+        Task task = getTask(taskId); // Helper method you already have
+        
+        ChecklistItem item = new ChecklistItem();
+        item.setTask(task);
+        item.setText(text);
+        item.setIsCompleted(false);
+        
+        return checklistItemRepository.save(item);
+    }
+
+    // ✨ NEW: TOGGLE CHECKLIST ITEM
+    @Transactional
+    public ChecklistItem toggleChecklistItem(Long itemId) {
+        ChecklistItem item = checklistItemRepository.findById(itemId)
+                .orElseThrow(() -> new RuntimeException("Checklist item not found"));
+        
+        item.setIsCompleted(!item.getIsCompleted());
+        return checklistItemRepository.save(item);
     }
 }

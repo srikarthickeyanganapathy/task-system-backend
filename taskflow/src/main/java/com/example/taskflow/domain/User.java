@@ -43,6 +43,7 @@ public class User {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "manager_id")
+    @JsonIgnore
     private User manager;
 
     @Column(name = "created_at")
