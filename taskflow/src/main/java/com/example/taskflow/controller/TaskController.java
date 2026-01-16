@@ -1,17 +1,18 @@
 package com.example.taskflow.controller;
 
 import java.util.List;
-import java.util.Map; // ✨ Add this
+import java.util.Map;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.taskflow.domain.ChecklistItem; // ✨ Add this
+import com.example.taskflow.domain.ChecklistItem;
 import com.example.taskflow.domain.Task;
 import com.example.taskflow.domain.TaskComment;
 import com.example.taskflow.domain.User;
@@ -36,15 +37,21 @@ public class TaskController {
         this.userService = userService;
     }
 
+    // Helper to get currently logged-in user
+    private User getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return userService.getCurrentUser(auth.getName());
+    }
+
     @GetMapping
-    public List<Task> getTasks(@RequestParam String username) {
-        User user = userService.getCurrentUser(username);
-        return taskWorkflowService.getTasksForUser(user);
+    public List<Task> getTasks() {
+        return taskWorkflowService.getTasksForUser(getCurrentUser());
     }
 
     @PostMapping("/assign")
     public Task assignTask(@RequestBody TaskRequestDTO request) {
-        User creator = userService.getCurrentUser(request.getCreatorUsername());
+        User creator = getCurrentUser();
+        // The DTO contains the assignee username
         User assignee = userService.getCurrentUser(request.getAssigneeUsername());
 
         return taskAssignmentService.assignTask(
@@ -59,25 +66,18 @@ public class TaskController {
     }
 
     @PostMapping("/{taskId}/submit")
-    public Task submitTask(@PathVariable Long taskId,
-                           @RequestParam String username) {
-        User user = userService.getCurrentUser(username);
-        return taskWorkflowService.submitTask(taskId, user);
+    public Task submitTask(@PathVariable Long taskId) {
+        return taskWorkflowService.submitTask(taskId, getCurrentUser());
     }
 
     @PostMapping("/{taskId}/approve")
-    public Task approveTask(@PathVariable Long taskId,
-                            @RequestParam String username) {
-        User reviewer = userService.getCurrentUser(username);
-        return taskWorkflowService.approveTask(taskId, reviewer);
+    public Task approveTask(@PathVariable Long taskId) {
+        return taskWorkflowService.approveTask(taskId, getCurrentUser());
     }
 
     @PostMapping("/{taskId}/reject")
-    public Task rejectTask(@PathVariable Long taskId,
-                           @RequestParam String username,
-                           @RequestBody(required = false) String reason) {
-        User reviewer = userService.getCurrentUser(username);
-        return taskWorkflowService.rejectTask(taskId, reviewer, reason);
+    public Task rejectTask(@PathVariable Long taskId, @RequestBody(required = false) String reason) {
+        return taskWorkflowService.rejectTask(taskId, getCurrentUser(), reason);
     }
 
     @GetMapping("/{taskId}/comments")
@@ -86,16 +86,12 @@ public class TaskController {
     }
 
     @PostMapping("/{taskId}/comments")
-    public TaskComment addComment(@PathVariable Long taskId,
-                                  @RequestParam String username,
-                                  @RequestBody String commentText) {
-        User user = userService.getCurrentUser(username);
-        return taskWorkflowService.addComment(taskId, user, commentText);
+    public TaskComment addComment(@PathVariable Long taskId, @RequestBody String commentText) {
+        return taskWorkflowService.addComment(taskId, getCurrentUser(), commentText);
     }
 
     @PostMapping("/{taskId}/checklists")
-    public ChecklistItem addChecklistItem(@PathVariable Long taskId, 
-                                         @RequestBody Map<String, String> payload) {
+    public ChecklistItem addChecklistItem(@PathVariable Long taskId, @RequestBody Map<String, String> payload) {
         return taskWorkflowService.addChecklistItem(taskId, payload.get("text"));
     }
 

@@ -1,8 +1,10 @@
 package com.example.taskflow.security;
 
 import org.springframework.stereotype.Component;
-
+import com.example.taskflow.domain.Role;
 import com.example.taskflow.domain.User;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 public class RoleStrategyFactory {
@@ -20,13 +22,24 @@ public class RoleStrategyFactory {
     }
 
     public RoleStrategy getStrategy(User user) {
-        String roleName = user.getRole().getName();
+        // 1. Get all role names from the user's role set
+        Set<String> roleNames = user.getRoles().stream()
+                .map(Role::getName)
+                .collect(Collectors.toSet());
 
-        return switch (roleName) {
-            case "EMPLOYEE" -> employeeStrategy;
-            case "MANAGER" -> managerStrategy;
-            case "DIRECTOR" -> directorStrategy;
-            default -> throw new RuntimeException("Unknown role: " + roleName);
-        };
+        // 2. Check for roles in order of hierarchy (Highest -> Lowest)
+        
+        // If they are a DIRECTOR (or have ROLE_DIRECTOR)
+        if (roleNames.contains("DIRECTOR") || roleNames.contains("ROLE_DIRECTOR")) {
+            return directorStrategy;
+        }
+
+        // If they are a MANAGER
+        if (roleNames.contains("MANAGER") || roleNames.contains("ROLE_MANAGER")) {
+            return managerStrategy;
+        }
+
+        // Default to EMPLOYEE
+        return employeeStrategy;
     }
 }

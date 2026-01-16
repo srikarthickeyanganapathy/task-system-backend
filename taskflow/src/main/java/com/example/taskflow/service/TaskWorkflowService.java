@@ -38,30 +38,31 @@ public class TaskWorkflowService {
         this.checklistItemRepository = checklistItemRepository;
     }
 
+    /**
+     * Determines which tasks a user can see based on their Role Strategy.
+     */
     public List<Task> getTasksForUser(User user) {
-
         RoleStrategy strategy = roleStrategyFactory.getStrategy(user);
 
-        // Director → Sees ALL tasks in the system
         if (strategy.canOverride(user)) {
-            return taskRepository.findAll();
+            return taskRepository.findAll(); // Director sees all
         }
 
-        // Manager → Sees tasks assigned to TEAM + tasks assigned to SELF
         if (strategy.canAssign(user)) {
-            // ✨ FIXED: Was previously only fetching team tasks
-            return taskRepository.findByAssignedTo_IdOrAssignedTo_Manager_Id(user.getId(), user.getId());
+            return taskRepository.findByAssignedToOrCreatedBy(user); // Manager sees team's + own
         }
 
-        // Employee → Only sees OWN tasks
-        return taskRepository.findByAssignedTo_Id(user.getId());
+        return taskRepository.findByAssignedTo(user); // Employee sees only own
     }
 
     public Task submitTask(Long taskId, User user) {
         Task task = getTask(taskId);
+        
+        // Ensure only the assignee can submit
         if (!task.getAssignedTo().getId().equals(user.getId())) {
-            throw new RuntimeException("You can submit only your own tasks");
+            throw new RuntimeException("You can only submit tasks assigned to you.");
         }
+
         task.setCurrentStatus("SUBMITTED");
         Task updated = taskRepository.save(task);
         taskAuditService.recordStatus(updated, "SUBMITTED", user);
@@ -73,27 +74,26 @@ public class TaskWorkflowService {
         RoleStrategy strategy = roleStrategyFactory.getStrategy(reviewer);
 
         if (!strategy.canReview(reviewer, task)) {
-            throw new RuntimeException("You are not authorized to approve this task");
+            throw new RuntimeException("You are not authorized to review this task.");
         }
 
+        validateReviewer(reviewer, task);
+
         task.setCurrentStatus("APPROVED");
-        task.setReviewedBy(reviewer);
+        task.setReviewedBy(reviewer); // Store who approved it
+        
         Task updated = taskRepository.save(task);
         taskAuditService.recordStatus(updated, "APPROVED", reviewer);
         return updated;
     }
 
-    // Including the Reject fix from previous turn for completeness
     public Task rejectTask(Long taskId, User reviewer, String reason) {
         Task task = getTask(taskId);
-        RoleStrategy strategy = roleStrategyFactory.getStrategy(reviewer);
-
-        if (!strategy.canReview(reviewer, task)) {
-            throw new RuntimeException("You are not authorized to reject this task");
-        }
+        validateReviewer(reviewer, task);
 
         task.setCurrentStatus("REJECTED");
         task.setReviewedBy(reviewer);
+        
         Task updated = taskRepository.save(task);
 
         if (reason != null && !reason.trim().isEmpty()) {
@@ -104,10 +104,21 @@ public class TaskWorkflowService {
         return updated;
     }
 
+    // --- Helper Methods ---
+
+    private void validateReviewer(User reviewer, Task task) {
+        RoleStrategy strategy = roleStrategyFactory.getStrategy(reviewer);
+        if (!strategy.canReview(reviewer, task)) {
+            throw new RuntimeException("You are not authorized to review this task.");
+        }
+    }
+
     private Task getTask(Long taskId) {
         return taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
+                .orElseThrow(() -> new RuntimeException("Task not found with ID: " + taskId));
     }
+
+    // --- Comments & Checklists ---
 
     public TaskComment addComment(Long taskId, User user, String text) {
         Task task = getTask(taskId);
@@ -125,22 +136,18 @@ public class TaskWorkflowService {
 
     @Transactional
     public ChecklistItem addChecklistItem(Long taskId, String text) {
-        Task task = getTask(taskId); // Helper method you already have
-        
+        Task task = getTask(taskId);
         ChecklistItem item = new ChecklistItem();
         item.setTask(task);
         item.setText(text);
         item.setIsCompleted(false);
-        
         return checklistItemRepository.save(item);
     }
 
-    // ✨ NEW: TOGGLE CHECKLIST ITEM
     @Transactional
     public ChecklistItem toggleChecklistItem(Long itemId) {
         ChecklistItem item = checklistItemRepository.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("Checklist item not found"));
-        
         item.setIsCompleted(!item.getIsCompleted());
         return checklistItemRepository.save(item);
     }

@@ -15,9 +15,13 @@ public class ManagerStrategy implements RoleStrategy {
 
     @Override
     public boolean canReview(User user, Task task) {
-        return task.getAssignedTo() != null
-                && task.getAssignedTo().getManager() != null
-                && task.getAssignedTo().getManager().getId().equals(user.getId());
+        boolean isCreator = task.getCreatedBy() != null && 
+                            task.getCreatedBy().getId().equals(user.getId());
+
+        boolean isManagerOfAssignee = task.getAssignedTo() != null && 
+                                      task.getAssignedTo().getManager() != null && 
+                                      task.getAssignedTo().getManager().getId().equals(user.getId());
+        return isCreator || isManagerOfAssignee;
     }
 
     @Override

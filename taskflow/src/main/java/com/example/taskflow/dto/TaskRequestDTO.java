@@ -7,14 +7,14 @@ public class TaskRequestDTO {
     private String title;
     private String description;
     private String assigneeUsername;
-    private String creatorUsername;
-    private String priority; 
+    private String creatorUsername; // Optional, usually derived from token
+    private String priority;
     private LocalDateTime dueDate;
     private String tags;
 
     public TaskRequestDTO() {}
 
-    // Getters and Setters
+    // Standard Getters and Setters
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
 
