@@ -25,7 +25,8 @@ public class TaskAssignmentService {
         this.roleStrategyFactory = roleStrategyFactory;
     }
 
-    public Task assignTask(String title, String description, User assignee, User creator) {
+    public Task assignTask(String title, String description, User assignee, User creator, 
+                           String priority, LocalDateTime dueDate) {
 
         RoleStrategy strategy = roleStrategyFactory.getStrategy(creator);
 
@@ -38,6 +39,10 @@ public class TaskAssignmentService {
         task.setDescription(description);
         task.setAssignedTo(assignee);
         task.setCreatedBy(creator);
+        
+        task.setPriority(priority != null ? priority : "NORMAL");
+        task.setDueDate(dueDate);
+
         task.setCurrentStatus("ASSIGNED");
         task.setCreatedAt(LocalDateTime.now());
 

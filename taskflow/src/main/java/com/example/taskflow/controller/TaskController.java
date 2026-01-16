@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.taskflow.domain.Task;
+import com.example.taskflow.domain.TaskComment;
 import com.example.taskflow.domain.User;
 import com.example.taskflow.dto.TaskRequestDTO;
 import com.example.taskflow.service.TaskAssignmentService;
@@ -35,13 +36,10 @@ public class TaskController {
 
     @GetMapping
     public List<Task> getTasks(@RequestParam String username) {
-
         User user = userService.getCurrentUser(username);
-
         return taskWorkflowService.getTasksForUser(user);
     }
 
-    // Assign a task (Manager / Director)
     @PostMapping("/assign")
     public Task assignTask(@RequestBody TaskRequestDTO request) {
 
@@ -52,34 +50,48 @@ public class TaskController {
                 request.getTitle(),
                 request.getDescription(),
                 assignee,
-                creator
+                creator,
+                request.getPriority(), // ✨ Pass Priority
+                request.getDueDate()   // ✨ Pass DueDate
         );
     }
 
-    // Submit a task (Employee)
     @PostMapping("/{taskId}/submit")
     public Task submitTask(@PathVariable Long taskId,
                            @RequestParam String username) {
-
         User user = userService.getCurrentUser(username);
         return taskWorkflowService.submitTask(taskId, user);
     }
 
-    // Approve a task (Manager / Director)
     @PostMapping("/{taskId}/approve")
     public Task approveTask(@PathVariable Long taskId,
                             @RequestParam String username) {
-
         User reviewer = userService.getCurrentUser(username);
         return taskWorkflowService.approveTask(taskId, reviewer);
     }
 
-    // Reject a task (Manager / Director)
+    // ✨ Updated Reject Endpoint
     @PostMapping("/{taskId}/reject")
     public Task rejectTask(@PathVariable Long taskId,
-                           @RequestParam String username) {
-
+                           @RequestParam String username,
+                           @RequestBody(required = false) String reason) {
         User reviewer = userService.getCurrentUser(username);
-        return taskWorkflowService.rejectTask(taskId, reviewer);
+        // Delegate logic to service
+        return taskWorkflowService.rejectTask(taskId, reviewer, reason);
+    }
+
+    // ✨ Get Comments Endpoint
+    @GetMapping("/{taskId}/comments")
+    public List<TaskComment> getComments(@PathVariable Long taskId) {
+        return taskWorkflowService.getComments(taskId);
+    }
+
+    // ✨ Add Comment Endpoint
+    @PostMapping("/{taskId}/comments")
+    public TaskComment addComment(@PathVariable Long taskId,
+                                  @RequestParam String username,
+                                  @RequestBody String commentText) {
+        User user = userService.getCurrentUser(username);
+        return taskWorkflowService.addComment(taskId, user, commentText);
     }
 }

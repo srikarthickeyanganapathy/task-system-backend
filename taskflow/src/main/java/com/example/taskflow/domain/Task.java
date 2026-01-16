@@ -34,6 +34,12 @@ public class Task {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(length = 20)
+    private String priority; 
+
+    @Column(name = "due_date")
+    private LocalDateTime dueDate;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_to", nullable = false)
     private User assignedTo;

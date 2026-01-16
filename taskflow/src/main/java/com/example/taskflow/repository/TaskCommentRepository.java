@@ -7,6 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.example.taskflow.domain.TaskComment;
 
 public interface TaskCommentRepository extends JpaRepository<TaskComment, Long> {
-
-    List<TaskComment> findByTask_Id(Long taskId);
+    // Spring Data JPA automatically derives the query for task.id
+    List<TaskComment> findByTaskId(Long taskId);
 }
